@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import discord
-import re
+import typing
 from discord.ext import commands
 from config import * # imports token, description etc.
 
@@ -21,33 +21,40 @@ async def on_ready():
 ##############################
 # Author: Tim | w4rum
 # DateCreated: 11/13/2019
-# Purpose: DM all members of the specified roles with the specified message
+# Purpose: DM all members of the specified role with the specified message
 ###############################
 @bot.command()
-async def dm(ctx, *args):
-    # Check arugment structure
-    if len(args) < 2:
-        await send_usage_help(ctx, "dm", "ROLE [MORE ROLES...] MESSAGE")
+async def dm(ctx, role: discord.Role):
+    # extract raw text message including whitespaces from context
+    message = ctx.message.content.partition(">")[2].lstrip()
 
-    message = args[-1]
-    roles = args[:-1]
+    for member in role.members:
+        dm_channel = member.dm_channel
+        if (dm_channel == None):
+            await member.create_dm()
+            dm_channel = member.dm_channel
+        await dm_channel.send(message)
 
-    # Check for roles with invalid format
-    # The Discord client translates role mentions into "<@&ID>",
-    # with ID being numerical
-    invalid_roles = \
-        list(filter(lambda s: re.match(r"<@&[0-9]+>", s) == None, roles))
-
-    if len(invalid_roles) > 0:
-        await send_error(ctx, "Invalid roles" \
-                + " (make sure you actually meantion them with @Role):\n" \
-                + ", ".join(invalid_roles))
-        return
-
+@dm.error
+async def dm_error(ctx, error):
+    if isinstance(error, commands.BadArgument):
+        await send_usage_help(ctx, "dm", "ROLE MESSAGE")
+    else:
+        await send_error_unknown(ctx)
+        raise error
 
 ################################################################################
 ## Utility functions
 ################################################################################
+
+##############################
+# Author: Tim | w4rum
+# DateCreated: 11/13/2019
+# Purpose: Send an error message to the current chat
+###############################
+def send_error_unknown(ctx):
+    return send_error(ctx, "Unknown error. Tell someone from the programming" \
+                      + " team to check the logs.")
 
 ##############################
 # Author: Tim | w4rum
