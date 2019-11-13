@@ -27,13 +27,32 @@ async def on_ready():
 async def dm(ctx, role: discord.Role):
     # extract raw text message including whitespaces from context
     message = ctx.message.content.partition(">")[2].lstrip()
+    author  = ctx.message.author
+
+    prefix = """\
+```
+========================================
+= Sender: %s
+= Recipient role: %s
+========================================
+```\
+""" % (author.nick or author, role.name)
+
+    suffix = """\
+```
+========================================
+```\
+"""
 
     for member in role.members:
         dm_channel = member.dm_channel
         if (dm_channel == None):
             await member.create_dm()
             dm_channel = member.dm_channel
-        await dm_channel.send(message)
+        await dm_channel.send(prefix + message + suffix)
+
+    await ctx.send("Messages sent successfully. Sent to a total of %i people." \
+                   % len(role.members))
 
 @dm.error
 async def dm_error(ctx, error):
