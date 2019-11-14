@@ -29,7 +29,6 @@ async def on_ready():
 # Purpose: DM all members of the specified role with the specified message
 ###############################
 @bot.command()
-@commands.has_role(BOT_DM_REQUIRED_ROLE)
 async def dm(ctx):
     if ctx.channel.id not in BOT_DM_CHANNELS:
         raise ChannelPermissionMissing()
