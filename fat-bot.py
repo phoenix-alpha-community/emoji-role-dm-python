@@ -116,7 +116,7 @@ async def handle_reaction(payload, emoji_was_added):
         await member.remove_roles(role)
 
 async def translate_emoji_role(guild, message, emoji):
-    emoji = str(emoji) # TODO support for custom emojis
+    emoji = str(emoji)
 
     # get all emoji-to-role translations by parsing the message
     translations = {}
