@@ -3,9 +3,10 @@
 import discord
 import typing
 from discord.ext import commands
-from config import * # imports token, description etc.
+from config import *  # imports token, description etc.
 
 bot = commands.Bot(command_prefix=BOT_CMD_PREFIX, description=BOT_DESCRIPTION)
+
 
 @bot.event
 async def on_ready():
@@ -14,60 +15,84 @@ async def on_ready():
     print(bot.user.id)
     print('------')
 
+
 ################################################################################
 ## Bot commands
 ################################################################################
 
 ##############################
 # Author: Tim | w4rum
+# Editor: Matt | Mahtoid
 # DateCreated: 11/13/2019
 # Purpose: DM all members of the specified role with the specified message
 ###############################
 @bot.command()
-async def dm(ctx, role: discord.Role):
-    # extract raw text message including whitespaces from context
-    message = ctx.message.content.partition(">")[2].lstrip()
-    author  = ctx.message.author
+@commands.has_role(BOT_DM_REQUIRED_ROLE)
+async def dm(ctx):
+    if str(ctx.channel) != BOT_DM_CHANNEL:
+        raise ChannelPermissionMissing()
 
-    prefix = """\
-```
-========================================
-= Sender: %s
-= Recipient role: %s
-========================================
-```\
-""" % (author.nick or author, role.name)
+    # split argument string into roles and message
+    args = ctx.message.content.partition("dm ")[2]
+    role_part, _, message = args.partition("--")
+    role_part = role_part.strip()
+    message = message.lstrip()
+    if (len(message) == 0):
+        raise commands.BadArgument()
 
-    suffix = """\
-```
-========================================
-```\
-"""
+    # extract roles and collect recipients
+    recipients = set()
+    for role in role_part.split(" "):
+        conv = commands.RoleConverter()
+        role = await conv.convert(ctx, role)
+        recipients |= set(role.members)
 
-    for member in role.members:
-        dm_channel = member.dm_channel
-        if (dm_channel == None):
-            await member.create_dm()
-            dm_channel = member.dm_channel
-        await dm_channel.send(prefix + message + suffix)
+    sent_members = []
 
-<<<<<<< HEAD
-=======
+    for member in recipients:
+        try:
+            await member.send(message)
+            sent_members.append(member)
+        except discord.errors.Forbidden:
+            await ctx.send(member.mention + " did not receive the message.")
     await ctx.send("Messages sent successfully. Sent to a total of %i people." \
-                   % len(role.members))
+                   % len(sent_members))
+
 
 @dm.error
 async def dm_error(ctx, error):
-    if isinstance(error, commands.BadArgument):
-        await send_usage_help(ctx, "dm", "ROLE MESSAGE")
-    else:
-        await send_error_unknown(ctx)
-        raise error
+    error_handlers = {
 
->>>>>>> 00e5fb5b0aef6750544a925583008f4609857787
+        commands.BadArgument: lambda:
+            send_usage_help(ctx, "dm", "ROLE [MORE ROLES...] -- MESSAGE"),
+
+        commands.MissingRole: lambda:
+            ctx.send("Insufficient rank permissions."),
+
+        ChannelPermissionMissing: lambda:
+            ctx.send("Insufficient channel permissions."
+                     + " The bot is in the wrong channel.")
+    }
+
+    for error_type, handler in error_handlers.items():
+        if isinstance(error, error_type):
+            await handler()
+            return
+
+    await send_error_unknown(ctx)
+
+
 ################################################################################
-## Utility functions
+## Utility functions and classes
 ################################################################################
+
+##############################
+# Author: Tim | w4rum
+# DateCreated: 11/14/2019
+# Purpose: Error class used when a command is issued in the wrong channel
+###############################
+class ChannelPermissionMissing(commands.CommandError): pass
+
 
 ##############################
 # Author: Tim | w4rum
@@ -77,6 +102,7 @@ async def dm_error(ctx, error):
 def send_error_unknown(ctx):
     return send_error(ctx, "Unknown error. Tell someone from the programming" \
                       + " team to check the logs.")
+
 
 ##############################
 # Author: Tim | w4rum
