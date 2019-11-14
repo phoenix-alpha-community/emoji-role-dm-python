@@ -26,37 +26,73 @@ async def on_ready():
 # DateCreated: 11/13/2019
 # Purpose: DM all members of the specified role with the specified message
 ###############################
-
 @bot.command()
-@commands.has_role('GEN')
-async def dm(ctx, role: discord.Role):
-    if BOT_DM_CHANNEL == str(ctx.channel):
-        message = ctx.message.content.partition(">")[2].lstrip()
+@commands.has_role(BOT_DM_REQUIRED_ROLE)
+async def dm(ctx):
+    if str(ctx.channel) != BOT_DM_CHANNEL:
+        raise ChannelPermissionMissing()
 
-        sent_members = []
+    # split argument string into roles and message
+    args = ctx.message.content.partition("dm ")[2]
+    role_part, _, message = args.partition("--")
+    role_part = role_part.strip()
+    message = message.lstrip()
+    if (len(message) == 0):
+        raise commands.BadArgument()
 
-        for member in role.members:
-            try:
-                await member.send(message)
-                sent_members.append(member)
-            except discord.errors.Forbidden:
-                await ctx.send(member.mention + " did not receive the message.")
-        await ctx.send("Messages sent successfully. Sent to a total of " + str(len(sent_members)) + " people.")
+    # extract roles and collect recipients
+    recipients = set()
+    for role in role_part.split(" "):
+        conv = commands.RoleConverter()
+        role = await conv.convert(ctx, role)
+        recipients |= set(role.members)
+
+    sent_members = []
+
+    for member in recipients:
+        try:
+            await member.send(message)
+            sent_members.append(member)
+        except discord.errors.Forbidden:
+            await ctx.send(member.mention + " did not receive the message.")
+    await ctx.send("Messages sent successfully. Sent to a total of %i people." \
+                   % len(sent_members))
 
 
 @dm.error
 async def dm_error(ctx, error):
-    if isinstance(error, commands.BadArgument):
-        await send_usage_help(ctx, "dm", "ROLE MESSAGE")
-    if isinstance(error, commands.MissingRole):
-        await ctx.send("Insufficient rank permissions.")
-    if BOT_DM_CHANNEL != str(ctx.channel):
-        await ctx.send("Insufficient channel permissions.")
+    error_handlers = {
+
+        commands.BadArgument: lambda:
+            send_usage_help(ctx, "dm", "ROLE [MORE ROLES...] -- MESSAGE"),
+
+        commands.MissingRole: lambda:
+            ctx.send("Insufficient rank permissions."),
+
+        ChannelPermissionMissing: lambda:
+            ctx.send("Insufficient channel permissions."
+                     + " The bot is in the wrong channel.")
+    }
+
+    for error_type, handler in error_handlers.items():
+        if isinstance(error, error_type):
+            await handler()
+            return
+
+    await send_error_unknown(ctx)
 
 
 ################################################################################
-## Utility functions
+## Utility functions and classes
 ################################################################################
+
+##############################
+# Author: Tim | w4rum
+# DateCreated: 11/14/2019
+# Purpose: Error class used when a command is issued in the wrong channel
+###############################
+class ChannelPermissionMissing(commands.CommandError): pass
+
 
 ##############################
 # Author: Tim | w4rum
