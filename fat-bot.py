@@ -106,6 +106,8 @@ async def handle_reaction(payload, emoji_was_added):
     message = await channel.fetch_message(payload.message_id)
     guild = bot.get_guild(payload.guild_id)
     role = await translate_emoji_role(guild, message, payload.emoji)
+    if role == None:
+        return
     member = await guild.fetch_member(payload.user_id)
     if emoji_was_added:
         await member.add_roles(role)
@@ -126,7 +128,10 @@ async def translate_emoji_role(guild, message, emoji):
         role = utils.get(guild.roles, id=int(role_id))
         translations[expected_emoji] = role
 
-    return translations[emoji]
+    if emoji in translations:
+        return translations[emoji]
+    else:
+        return None
 
 # Debug function
 #@bot.event
