@@ -15,3 +15,29 @@ You can ignore that.
 To start, run `python3 fat-bot.py`.
 
 To stop, hit `CTRL+C`.
+
+# Command info
+
+### Emoji command
+The bot with handle reactions added to / removed from role-assignment-messages
+(RAM).
+Every message included in one of the channels listed under `BOT_ROLE_CHANNEL`
+in `config.py` is interpreted as a RAM.
+RAMs may have arbitrary content but emoji-to-role mappings must be seperate
+lines with the following format:
+```
+> EMOJI...-...@ROLE
+```
+With `EMOJI` being a reaction emoji, `@ROLE` being a role mention and `...`
+being any character except for a linebreak.
+The quote character (`>`) and the single dash (`-`) are mandatory.
+
+Example:
+```
+**Side-Game Channel Signups**
+
+> :muscle: #gym-goals - @FaT Bot Testing Role
+
+> :yahyeet:      garbage bla -foo@Test role
+```
+

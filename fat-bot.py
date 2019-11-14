@@ -104,9 +104,6 @@ async def handle_reaction(payload, emoji_was_added):
         return
 
     message = await channel.fetch_message(payload.message_id)
-    if message.id not in BOT_ROLE_MESSAGES:
-        return
-
     guild = bot.get_guild(payload.guild_id)
     role = await translate_emoji_role(guild, message, payload.emoji)
     member = await guild.fetch_member(payload.user_id)
