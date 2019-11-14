@@ -31,7 +31,7 @@ async def on_ready():
 @bot.command()
 @commands.has_role(BOT_DM_REQUIRED_ROLE)
 async def dm(ctx):
-    if str(ctx.channel) != BOT_DM_CHANNEL:
+    if ctx.channel.id not in BOT_DM_CHANNELS:
         raise ChannelPermissionMissing()
 
     # split argument string into roles and message
@@ -100,7 +100,7 @@ async def on_raw_reaction_remove(payload):
 
 async def handle_reaction(payload, emoji_was_added):
     channel = bot.get_channel(payload.channel_id)
-    if channel.name not in BOT_ROLE_CHANNEL:
+    if channel.id not in BOT_ROLE_CHANNELS:
         return
 
     message = await channel.fetch_message(payload.message_id)
