@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 import discord
+import discord.utils as utils
 import typing
+import re
 from discord.ext import commands
 from config import *  # imports token, description etc.
 
@@ -80,6 +82,51 @@ async def dm_error(ctx, error):
             return
 
     await send_error_unknown(ctx)
+
+##############################
+# Authors: just a normal guy, Tim | w4rum
+# Editor: Matt | Mahtoid
+# DateCreated: 11/14/2019
+# Purpose: Add or remove a specific role from a user when they react with a
+#          specific emoji to a role-assignment-message
+###############################
+@bot.event
+async def on_raw_reaction_add(payload):
+    await handle_reaction(payload, True)
+
+@bot.event
+async def on_raw_reaction_remove(payload):
+    await handle_reaction(payload, False)
+
+async def handle_reaction(payload, emoji_was_added):
+    channel = bot.get_channel(payload.channel_id)
+    if channel.name != BOT_ROLE_CHANNEL:
+        return
+
+    message = await channel.fetch_message(payload.message_id)
+    if message.id not in BOT_ROLE_MESSAGES:
+        return
+
+    guild = bot.get_guild(payload.guild_id)
+    role = await translate_emoji_role(guild, message, payload.emoji)
+    member = await guild.fetch_member(payload.user_id)
+    if emoji_was_added:
+        await member.add_roles(role)
+    else:
+        await member.remove_roles(role)
+
+async def translate_emoji_role(guild, message, emoji):
+    emoji = str(emoji) # TODO support for custom emojis
+
+    # get all emoji-to-role translations by parsing the message
+    translations = {}
+    pattern = r"React with a (.+) to get the <@&([0-9]+)> +role"
+    for match in re.finditer(pattern, message.content):
+        expected_emoji, role_id = match.group(1,2)
+        role = utils.get(guild.roles, id=int(role_id))
+        translations[expected_emoji] = role
+
+    return translations[emoji]
 
 
 ################################################################################
