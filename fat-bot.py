@@ -100,7 +100,7 @@ async def on_raw_reaction_remove(payload):
 
 async def handle_reaction(payload, emoji_was_added):
     channel = bot.get_channel(payload.channel_id)
-    if channel.name != BOT_ROLE_CHANNEL:
+    if channel.name not in BOT_ROLE_CHANNEL:
         return
 
     message = await channel.fetch_message(payload.message_id)
@@ -120,13 +120,21 @@ async def translate_emoji_role(guild, message, emoji):
 
     # get all emoji-to-role translations by parsing the message
     translations = {}
-    pattern = r"React with a (.+) to get the <@&([0-9]+)> +role"
+    pattern = r">* *([^ \n]+) [^\n]*-[^\n]*<@&([0-9]+)>"
     for match in re.finditer(pattern, message.content):
         expected_emoji, role_id = match.group(1,2)
+        expected_emoji = str(expected_emoji) # this will ensure custom
+                                             # emojis can also be checked via
+                                             # string comparison
         role = utils.get(guild.roles, id=int(role_id))
         translations[expected_emoji] = role
 
     return translations[emoji]
+
+# Debug function
+#@bot.event
+#async def on_message(message):
+#    print(message.content.encode())
 
 
 ################################################################################
