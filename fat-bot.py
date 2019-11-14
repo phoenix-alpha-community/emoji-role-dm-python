@@ -105,14 +105,19 @@ async def handle_reaction(payload, emoji_was_added):
 
     message = await channel.fetch_message(payload.message_id)
     guild = bot.get_guild(payload.guild_id)
-    role = await translate_emoji_role(guild, message, payload.emoji)
-    if role == None:
+
+    role, divider = await translate_emoji_role(guild, message, payload.emoji)
+    if role== None:
         return
+
     member = await guild.fetch_member(payload.user_id)
     if emoji_was_added:
-        await member.add_roles(role)
+        await member.add_roles(role, divider)
     else:
         await member.remove_roles(role)
+        if divider not in\
+                await get_necessary_dividers_of_member(guild, member, [role]):
+            await member.remove_roles(divider)
 
 async def translate_emoji_role(guild, message, emoji):
     emoji = str(emoji)
@@ -129,9 +134,41 @@ async def translate_emoji_role(guild, message, emoji):
         translations[expected_emoji] = role
 
     if emoji in translations:
-        return translations[emoji]
+        role = translations[emoji]
+        divider = await get_divider_for_role(guild, role)
+        return (role, divider)
     else:
+        return (None, None)
+
+async def get_divider_for_role(guild, role):
+    divider_prefix = b"\xe2\x81\xa3" # fancy centering spaces
+
+    # make sure the divider itself does not induce any divider-dependencies
+    if role.name.encode().startswith(divider_prefix):
         return None
+
+    # iterate backwards through the roles and get the divider directly above
+    # the specified role
+    encountered = False
+    for cur_role in guild.roles:
+        if cur_role.name.encode().startswith(divider_prefix) and encountered:
+            return cur_role
+        if cur_role == role:
+            encountered = True
+
+    return None
+
+async def get_necessary_dividers_of_member(guild, member, ignorelist):
+    dividers = set()
+    for role in member.roles:
+        if role in ignorelist:
+            continue
+        div = await get_divider_for_role(guild, role)
+        dividers.add(div)
+
+    dividers.remove(None)
+
+    return dividers
 
 # Debug function
 #@bot.event
