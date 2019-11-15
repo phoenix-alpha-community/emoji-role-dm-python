@@ -18,8 +18,19 @@ To stop, hit `CTRL+C`.
 
 # Command info
 
+### DM command
+```
+~dm @ROLE [MORE @ROLES...] -- MESSAGE
+```
+Sends a direct message to all members of the specified roles, not including
+duplicates.
+The double dash (`--`) between the role listing and the message is mandatory.
+The roles are seperated by a single space each and must be actual role
+mentions, not just strings.
+
+
 ### Emoji command
-The bot with handle reactions added to / removed from role-assignment-messages
+The bot will handle reactions added to / removed from role-assignment-messages
 (RAM).
 Every message included in one of the channels listed under `BOT_ROLE_CHANNEL`
 in `config.py` is interpreted as a RAM.
@@ -29,7 +40,7 @@ lines with the following format:
 > EMOJI...-...@ROLE
 ```
 With `EMOJI` being a reaction emoji, `@ROLE` being a role mention and `...`
-being any character except for a linebreak.
+being any stream of characters except for a linebreak or role mention.
 The quote character (`>`) and the single dash (`-`) are mandatory.
 
 Example:
