@@ -44,6 +44,8 @@ async def dm(ctx):
     # extract roles and collect recipients
     recipients = set()
     for role in role_part.split(" "):
+        if role == "":
+            continue
         conv = commands.RoleConverter()
         role = await conv.convert(ctx, role)
         recipients |= set(role.members)
