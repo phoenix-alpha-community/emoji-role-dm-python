@@ -28,6 +28,10 @@ async def on_ready():
 # DateCreated: 11/13/2019
 # Purpose: DM all members of the specified role with the specified message
 ###############################
+# Author: bigmax1994
+# DateCreated: 02/02/2020
+# Purpose: Added a feature to DM individual Members
+###############################
 @bot.command()
 async def dm(ctx):
     if ctx.channel.id not in BOT_DM_CHANNELS:
@@ -35,23 +39,31 @@ async def dm(ctx):
 
     # split argument string into roles and message
     args = ctx.message.content.partition("dm ")[2]
-    role_part, _, message = args.partition("--")
-    role_part = role_part.strip()
+    recipient_part, _, message = args.partition("--")
+    recipient_part = recipient_part.strip()
     message = message.lstrip()
+    
     if (len(message) == 0):
         raise commands.BadArgument()
 
-    # extract roles and collect recipients
+    # extract roles and Members and collect recipients
     recipients = set()
-    for role in role_part.split(" "):
-        if role == "":
+    for recipient in recipient_part.split(" "):
+        if recipient == "":
             continue
-        conv = commands.RoleConverter()
-        role = await conv.convert(ctx, role)
-        recipients |= set(role.members)
+            
+        try:
+            conv = commands.RoleConverter()
+            recipient = await conv.convert(ctx, recipient)
+            recipients |= set(recipient.members)
+        except commands.BadArgument:
+            #This gets triggered when there is no Role for the string 'recipients'
+            member_converter = commands.MemberConverter()
+            recipient = await member_converter.convert(ctx, recipient)
+            recipients.add(recipient)
 
     sent_members = []
-
+    
     for member in recipients:
         try:
             await member.send(message)
