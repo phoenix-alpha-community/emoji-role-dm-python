@@ -2,6 +2,7 @@
 
 import discord
 import discord.utils as utils
+import traceback
 import typing
 import re
 from discord.ext import commands
@@ -34,15 +35,41 @@ async def on_ready():
 ###############################
 @bot.command()
 async def dm(ctx):
+    '''
+    Usage:
+    ~dm @ROLE/MEMBER [MORE @ROLES/MEMBERS...] -- MESSAGE
+
+    Sends a direct message to all members of the specified roles, not including
+    duplicates.
+    The double dash (`--`) between the role listing and the message is
+    mandatory.
+    The roles are seperated by a single space each and must be actual role
+    mentions, not just strings.
+    '''
+    await _dm_generic(ctx, online_only=False)
+
+@bot.command(aliases=["dmo"])
+async def dm_online(ctx):
+    '''
+    Like the dm command but will only message users that are online (and not
+    invisible).
+    '''
+    await _dm_generic(ctx, online_only=True)
+
+async def _dm_generic(ctx, *, online_only):
+    '''
+    See ``dm``.
+    '''
+
     if ctx.channel.id not in BOT_DM_CHANNELS:
         raise ChannelPermissionMissing()
 
     # split argument string into roles and message
-    args = ctx.message.content.partition("dm ")[2]
+    args = ctx.message.content.partition(ctx.invoked_with + " ")[2]
     recipient_part, _, message = args.partition("--")
     recipient_part = recipient_part.strip()
     message = message.lstrip()
-    
+
     if (len(message) == 0):
         raise commands.BadArgument()
 
@@ -51,7 +78,7 @@ async def dm(ctx):
     for recipient in recipient_part.split(" "):
         if recipient == "":
             continue
-            
+
         try:
             conv = commands.RoleConverter()
             recipient = await conv.convert(ctx, recipient)
@@ -62,19 +89,32 @@ async def dm(ctx):
             recipient = await member_converter.convert(ctx, recipient)
             recipients.add(recipient)
 
-    sent_members = []
-    
+    sent = 0
+    offline = 0
+    blocked = 0
+
     for member in recipients:
+        if online_only and member.status == discord.Status.offline:
+            offline += 1
+            continue
         try:
             await member.send(message)
-            sent_members.append(member)
+            sent += 1
         except discord.errors.Forbidden:
-            await ctx.send(member.mention + " did not receive the message.")
-    await ctx.send("Messages sent successfully. Sent to a total of %i people." \
-                   % len(sent_members))
+            blocked += 1
+            await ctx.send(f"{member.mention} did not receive the message "
+                           f"(bot was blocked).")
+    message = (f"Message sending complete.\n"
+               f"> Sent to a total of {sent} people\n")
+    if offline > 0 or blocked > 0:
+        message += (f"> {offline+blocked} people did not receive a message\n"
+                    f"> - {offline} offline\n"
+                    f"> - {blocked} blocked")
+    await ctx.send(message)
 
 
 @dm.error
+@dm_online.error
 async def dm_error(ctx, error):
     error_handlers = {
 
@@ -94,6 +134,7 @@ async def dm_error(ctx, error):
             await handler()
             return
 
+    traceback.print_exception(type(error), error, error.__traceback__)
     await send_error_unknown(ctx)
 
 ##############################
