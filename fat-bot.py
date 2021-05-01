@@ -241,17 +241,15 @@ async def translate_emoji_role(guild, message, emoji):
         return (None, None)
 
 async def get_divider_for_role(guild, role):
-    divider_prefix = b"\xe2\x81\xa3" # fancy centering spaces
-
     # make sure the divider itself does not induce any divider-dependencies
-    if role.name.encode().startswith(divider_prefix):
+    if not role.name.isprintable():
         return None
 
     # iterate backwards through the roles and get the divider directly above
     # the specified role
     encountered = False
     for cur_role in guild.roles:
-        if cur_role.name.encode().startswith(divider_prefix) and encountered:
+        if not cur_role.name.isprintable() and encountered:
             return cur_role
         if cur_role == role:
             encountered = True
