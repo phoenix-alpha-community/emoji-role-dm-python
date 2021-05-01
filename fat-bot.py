@@ -18,29 +18,6 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print('------')
-    await start_up()
-
-
-guest_1 = any
-guest_2 = any
-guest_3 = any
-guest_4 = any
-guest_5 = any
-guest_6 = any
-final_guest = any
-channel_ids = list
-
-
-async def start_up():
-    global channel_ids
-    global guest_1, guest_2, guest_3, guest_4, guest_5, guest_6, final_guest
-    the_guild: discord.Guild = bot.get_guild(398543362476605441)
-    guest_1 = the_guild.get_role(744702068010516611)
-    guest_2 = the_guild.get_role(744702073508986900)
-    guest_3 = the_guild.get_role(744702079091736686)
-    guest_4 = the_guild.get_role(744702082690580490)
-    guest_5 = the_guild.get_role(744702087476281374)
-    final_guest = the_guild.get_role(732451832768626829)
 
 
 ################################################################################
@@ -171,28 +148,6 @@ async def dm_error(ctx, error):
 @bot.event
 async def on_raw_reaction_add(payload):
     await handle_reaction(payload, True)
-
-    guild = bot.get_guild(payload.guild_id)
-
-    if payload.member == guild.me or payload.channel_id not in config.START_CHANNELS:
-        return
-    if payload.channel_id == config.START_CHANNELS[0]:
-        await payload.member.add_roles(guest_1)
-    elif payload.channel_id == config.START_CHANNELS[1]:
-        await payload.member.add_roles(guest_2)
-        await payload.member.remove_roles(guest_1)
-    elif payload.channel_id == config.START_CHANNELS[2]:
-        await payload.member.add_roles(guest_3)
-        await payload.member.remove_roles(guest_2)
-    elif payload.channel_id == config.START_CHANNELS[3]:
-        await payload.member.add_roles(guest_4)
-        await payload.member.remove_roles(guest_3)
-    elif payload.channel_id == config.START_CHANNELS[4]:
-        await payload.member.add_roles(guest_5)
-        await payload.member.remove_roles(guest_4)
-    elif payload.channel_id == config.START_CHANNELS[5]:
-        await payload.member.add_roles(final_guest)
-        await payload.member.remove_roles(guest_5)
 
 @bot.event
 async def on_raw_reaction_remove(payload):
